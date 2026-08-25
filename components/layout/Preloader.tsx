@@ -10,6 +10,7 @@ type Phase = "idle" | "showing" | "fading" | "done";
 export function Preloader() {
   const [phase, setPhase] = useState<Phase>("idle");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let seen = false;
@@ -39,15 +40,33 @@ export function Preloader() {
 
   useEffect(() => {
     if (phase !== "showing") return;
+
     document.documentElement.classList.add("preloader-lock");
+
     const fallback = window.setTimeout(finish, FALLBACK_TIMEOUT);
-    const video = videoRef.current;
-    if (video) {
-      video.play().catch(finish);
-    }
-    return () => {
+    cleanupRef.current = () => {
       window.clearTimeout(fallback);
       document.documentElement.classList.remove("preloader-lock");
+    };
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const onCanPlay = () => {
+      video.play().catch(() => {});
+    };
+
+    const onEnded = () => finish();
+
+    video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("ended", onEnded);
+
+    video.load();
+
+    return () => {
+      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("ended", onEnded);
+      cleanupRef.current?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -68,13 +87,10 @@ export function Preloader() {
       <video
         ref={videoRef}
         src="/intro-video.mp4"
-        autoPlay
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
         disablePictureInPicture
-        onEnded={finish}
-        onError={finish}
       />
       <span className="intro-preloader-skip">Skip intro</span>
     </div>
