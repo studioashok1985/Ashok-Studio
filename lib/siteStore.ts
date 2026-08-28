@@ -23,13 +23,20 @@ async function persistBuffer(fileName: string, body: Buffer, contentType: string
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
 
   if (hasBlobStorage()) {
-    const uploaded = await put(`uploads/${Date.now()}-${safeName}`, body, {
-      access: "public",
-      token: blobToken(),
-      contentType,
-      addRandomSuffix: true,
-    });
-    return uploaded.url;
+    try {
+      const uploaded = await put(`uploads/${Date.now()}-${safeName}`, body, {
+        access: "public",
+        token: blobToken(),
+        contentType,
+        addRandomSuffix: true,
+      });
+      return uploaded.url;
+    } catch (error: any) {
+      if (error.message?.includes("Cannot use public access on a private store")) {
+        throw new Error("Your Vercel Blob store is set to Private. Please recreate it as a Public store in the Vercel dashboard so your photos can be viewed on the website.");
+      }
+      throw error;
+    }
   }
 
   await mkdir(LOCAL_UPLOADS, { recursive: true });
@@ -104,14 +111,21 @@ export async function savePublishedContent(content: SiteContent): Promise<SiteCo
   const prepared = (await replaceInlineImages(content, "site")) as SiteContent;
 
   if (hasBlobStorage()) {
-    await put(CONTENT_BLOB, JSON.stringify(prepared), {
-      access: "public",
-      token: blobToken(),
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return prepared;
+    try {
+      await put(CONTENT_BLOB, JSON.stringify(prepared), {
+        access: "public",
+        token: blobToken(),
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        contentType: "application/json",
+      });
+      return prepared;
+    } catch (error: any) {
+      if (error.message?.includes("Cannot use public access on a private store")) {
+        throw new Error("Your Vercel Blob store is set to Private. Please recreate it as a Public store in the Vercel dashboard so your photos can be viewed on the website.");
+      }
+      throw error;
+    }
   }
 
   await mkdir(path.dirname(LOCAL_CONTENT), { recursive: true });

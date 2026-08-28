@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useEdit } from "@/components/edit/EditProvider";
@@ -45,12 +46,13 @@ export function SiteHeader() {
       <nav className="mx-auto flex max-w-8xl items-center justify-between gap-3 px-4 py-3 sm:gap-6 sm:px-5 sm:py-4 md:px-10">
         <Link
           href="/"
-          className="flex items-center gap-3"
+          className="flex items-center gap-2 md:gap-3"
           onClick={(event) => {
             if (isEditMode) event.preventDefault();
             setOpen(false);
           }}
         >
+          <Image src="/logo.png" alt="Ashok Studio Logo" width={24} height={24} className="h-6 w-auto md:h-8" />
           <span className="font-sans text-[11px] font-medium uppercase tracking-[0.22em] text-ink">
             Ashok Studio
           </span>
